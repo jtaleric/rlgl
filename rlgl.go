@@ -71,7 +71,7 @@ func CheckEvents(c *corev1.CoreV1Client) bool {
 	fmt.Println("👀 Looking for general troublesome events in the cluster..")
 	f, err := fields.ParseSelector("type!=Normal,type!=Warning")
 	if err != nil {
-		fmt.Errorf("Unable to build fieldSelector : %s", err)
+		fmt.Printf("Unable to build fieldSelector : %s\r\n", err)
 		return false
 	}
 	ev, err := c.Events(metav1.NamespaceAll).List(context.TODO(),
