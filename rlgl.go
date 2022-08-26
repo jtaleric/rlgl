@@ -14,8 +14,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const followHelp string = `Follow: exit until an error is found, keep checking every N seconds.
+Use ctrl + c to force exit.`
+
 func main() {
 	t := flag.Int("t", 10, "Time in Minutes to look back for events.")
+	f := flag.Bool("f", false, followHelp)
+	sleep := flag.Int("sleep", 30, "Time in Seconds to sleep before next check.")
 	flag.Parse()
 
 	kconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
@@ -29,7 +34,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if CheckEvents(coreclient) && CheckNodeEvents(coreclient, t) {
+
+	result := CheckEvents(coreclient) && CheckNodeEvents(coreclient, t)
+	for *f && result {
+		time.Sleep(time.Duration(*sleep) * time.Second)
+		result = CheckEvents(coreclient) && CheckNodeEvents(coreclient, t)
+	}
+	if result {
 		os.Exit(0)
 	} else {
 		os.Exit(1)
