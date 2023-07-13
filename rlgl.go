@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -21,6 +23,7 @@ func main() {
 	t := flag.Int("t", 10, "Time in Minutes to look back for events.")
 	f := flag.Bool("f", false, followHelp)
 	sleep := flag.Int("sleep", 30, "Time in Seconds to sleep before next check.")
+	background := flag.Bool("background", false, "Run in the background")
 	flag.Parse()
 
 	kconfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
@@ -36,13 +39,27 @@ func main() {
 	}
 
 	result := CheckEvents(coreclient) && CheckNodeEvents(coreclient, t)
-	for *f && result {
-		time.Sleep(time.Duration(*sleep) * time.Second)
-		result = CheckEvents(coreclient) && CheckNodeEvents(coreclient, t)
-	}
 	if result {
-		os.Exit(0)
+		fmt.Println("No troublesome events found.")
 	} else {
+		os.Exit(1)
+	}
+
+	if *background {
+		fmt.Println("Program is running in the background...")
+		fmt.Println("Use 'kill <pid>' to stop the program.")
+		// Run the program in the background
+		ch := make(chan os.Signal, 1)
+		signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+		<-ch
+	} else {
+		for *f {
+			time.Sleep(time.Duration(*sleep) * time.Second)
+			result = CheckEvents(coreclient) && CheckNodeEvents(coreclient, t)
+			if result {
+				os.Exit(0)
+			}
+		}
 		os.Exit(1)
 	}
 }
@@ -94,7 +111,7 @@ func CheckEvents(c *corev1.CoreV1Client) bool {
 		return false
 	}
 	if len(ev.Items) > 0 {
-		fmt.Println("🔥 Detected troublesome events: ")
+		fmt.Println("🔥 Detected troublesome events:")
 		BadEvents(ev.Items)
 		return false
 	}
