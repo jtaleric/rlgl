@@ -103,6 +103,10 @@ func CheckEvents(c *corev1.CoreV1Client) bool {
 
 func BadEvents(i []v1.Event) {
 	for _, e := range i {
-		fmt.Printf("\t🗒️  %s \t %s \t %s \r\n", e.Type, e.Reason, e.LastTimestamp)
+		fmt.Printf("🗒️  %s \t %s \t %s \n", e.Type, e.Reason, e.LastTimestamp)
+		fmt.Printf("Message: \t %s \n", e.Message)
+		fmt.Printf("Namespace: \t %s \n", e.InvolvedObject.Namespace)
+		fmt.Printf("Event Time: \t %s \n", e.EventTime)
+		fmt.Println("------------------------")
 	}
 }
